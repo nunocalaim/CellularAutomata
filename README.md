@@ -1,2 +1,3 @@
 # CellularAutomata
-l
+
+Cellular automata with neural network
