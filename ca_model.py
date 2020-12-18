@@ -4,9 +4,12 @@ import numpy as np
 
 class CAModel(tf.keras.Model):
     
-    def __init__(self, add_noise=True):
+    def __init__(self, NO_CHANNELS, H, W, add_noise=True):
         super().__init__()
         self.add_noise = add_noise
+        self.NO_CHANNELS = NO_CHANNELS
+        self.H = H
+        self.W = W
 
         self.update_state = tf.keras.Sequential([
             Conv2D(80, 3, activation=tf.nn.relu, padding="SAME"),
@@ -43,8 +46,8 @@ class CAModel(tf.keras.Model):
         input: images of size (batch, h, w)
         output: initial CA state full of 0's for positions other than the images. shape (batch, h, w, 1 + channel_n)
         '''
-        state = tf.zeros([tf.shape(images)[0], H, W, NO_CHANNELS]) # size (batch, h, w, channel_n) full of zeros
-        images = tf.reshape(images, [-1, H, W, 1]) # our images we add an extra dimension
+        state = tf.zeros([tf.shape(images)[0], self.H, self.W, self.NO_CHANNELS]) # size (batch, h, w, channel_n) full of zeros
+        images = tf.reshape(images, [-1, self.H, self.W, 1]) # our images we add an extra dimension
         return tf.concat([images, state], -1) # just concatenating
 
     @tf.function
@@ -53,14 +56,14 @@ class CAModel(tf.keras.Model):
         The last NO_CLASSES layers are the classification predictions, one channel
         per class.
         '''
-        return x[:, :, :, -NO_CLASSES:]
+        return x[:, :, :, -self.NO_CLASSES:]
     
     @tf.function
     def mutate(self, x, new_images):
         '''
         This function corrupts the current state of the CA by just changing the gray image
         '''
-        old_images, state = tf.split(x, [1, NO_CHANNELS], -1)
+        old_images, state = tf.split(x, [1, self.NO_CHANNELS], -1)
         return tf.concat([new_images, state], -1)
 
 
