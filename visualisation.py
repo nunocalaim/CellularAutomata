@@ -49,6 +49,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
 import tqdm, PIL.Image
 
 def plot_loss(loss_log, loss_log_classes, folder, id_run, limits_c_p, color_lookup, save=False):
