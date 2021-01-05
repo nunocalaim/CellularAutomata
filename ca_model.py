@@ -4,10 +4,11 @@ import numpy as np
 
 class CAModel(tf.keras.Model):
     
-    def __init__(self, NO_CHANNELS, H, W, add_noise=True):
+    def __init__(self, NO_CHANNELS, NO_CLASSES, H, W, add_noise=True):
         super().__init__()
         self.add_noise = add_noise
         self.NO_CHANNELS = NO_CHANNELS
+        self.NO_CLASSES = NO_CLASSES
         self.H = H
         self.W = W
 
@@ -31,9 +32,9 @@ class CAModel(tf.keras.Model):
                 and the others are there just for fun :)
         '''
         new_state = self.update_state(x) # new_state will be the state update (of course, we don't want to update the gray image as that is our true input)
-        image, old_state = tf.split(x, [1, NO_CHANNELS], -1)
+        image, old_state = tf.split(x, [1, self.NO_CHANNELS], -1)
         if self.add_noise:
-            residual_noise = tf.random.normal(tf.shape(ds), mean=0., stddev=0.02)
+            residual_noise = tf.random.normal(tf.shape(new_state), mean=0., stddev=0.02)
             new_state += residual_noise
 
         new_state *= image 
@@ -102,16 +103,16 @@ def export_model(folder, id_run, ca, i, loss_log, loss_log_classes):
     '''
     Saves the models parameters
     '''
-    ca.save_weights(folder + '/output/' + id_run + '_run_no_{}'.format(i))
-    np.savez(folder + '/output/' + id_run + '_run_no_{}_loss'.format(i), loss_log=loss_log, loss_log_classes=loss_log_classes)
+    ca.save_weights(folder + '/saved_models/' + id_run + '_run_no_{}'.format(i))
+    np.savez(folder + '/saved_models/' + id_run + '_run_no_{}_loss'.format(i), loss_log=loss_log, loss_log_classes=loss_log_classes)
 
-def get_model(folder, id_run, i, ADD_NOISE):
+def get_model(folder, id_run, i, NO_CHANNELS, NO_CLASSES, H, W, ADD_NOISE):
     '''
     Gets the models parameters
     '''
-    ca = CAModel(add_noise=ADD_NOISE)
-    ca.load_weights(folder + '/output/' + id_run + '_run_no_{}'.format(i))
-    res = np.load(folder + '/output/' + id_run + '_run_no_{}_loss.npz'.format(i))
+    ca = CAModel(NO_CHANNELS, NO_CLASSES, H, W, add_noise=ADD_NOISE)
+    ca.load_weights(folder + '/saved_models/' + id_run + '_run_no_{}'.format(i))
+    res = np.load(folder + '/saved_models/' + id_run + '_run_no_{}_loss.npz'.format(i))
     loss_log = res['loss_log']
     loss_log_classes = res['loss_log_classes']
     return ca, loss_log, loss_log_classes
@@ -127,7 +128,7 @@ def train_step(trainer, ca, x, y, y_label, TR_EVOLVE, NO_CLASSES, MutateTraining
     with tf.GradientTape() as g: # GradientTape does automatic differentiation on the learnable_parameters of our model
         for i_iter in tf.range(iter_n): # Basically let time evolve
             x = ca(x) # update the CA according to call method? ca(x) = ca.call(x)?
-        loss_b, c_l_b = batch_l2_loss(ca, x, y, label_vector, NO_CLASSES) # compute the scalar loss
+        loss_b, c_l_b = batch_l2_loss(ca, x, y, y_label, NO_CLASSES) # compute the scalar loss
     grads = g.gradient(loss_b, ca.weights) # Gradient Tape and Keras doing its magic
     grads = [g/(tf.norm(g)+1e-8) for g in grads] # Normalising the gradients uh?
     trainer.apply_gradients(zip(grads, ca.weights)) # Keras and ADAM magic 
@@ -140,7 +141,7 @@ def train_step(trainer, ca, x, y, y_label, TR_EVOLVE, NO_CLASSES, MutateTraining
     with tf.GradientTape() as g: # GradientTape does automatic differentiation on the learnable_parameters of our model
         for i_iter in tf.range(iter_n): # Basically let time evolve
             x = ca(x) # update the CA according to call method? ca(x) = ca.call(x)?
-        loss_a, c_l_a = batch_l2_loss(ca, x, y, label_vector, NO_CLASSES) # compute the scalar loss
+        loss_a, c_l_a = batch_l2_loss(ca, x, y, y_label, NO_CLASSES) # compute the scalar loss
     grads = g.gradient(loss_a, ca.weights) # Gradient Tape and Keras doing its magic
     grads = [g/(tf.norm(g)+1e-8) for g in grads] # Normalising the gradients uh?
     trainer.apply_gradients(zip(grads, ca.weights)) # Keras and ADAM magic 
