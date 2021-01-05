@@ -38,3 +38,19 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+__pycache__/
+
+dataset/
+
+output/checkpoint
+
+saved_models/.DS_Store
+
+.DS_Store
+
+saved_models/checkpoint
+
+saved_models/
+
+output/
