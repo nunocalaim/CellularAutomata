@@ -4,7 +4,7 @@ import numpy as np
 
 class CAModel(tf.keras.Model):
     
-    def __init__(self, NO_CHANNELS, NO_CLASSES, H, W, add_noise=True):
+    def __init__(self, NO_CHANNELS, NO_CLASSES, H, W, add_noise=True, full_model=True):
         super().__init__()
         self.add_noise = add_noise
         self.NO_CHANNELS = NO_CHANNELS
@@ -12,11 +12,16 @@ class CAModel(tf.keras.Model):
         self.H = H
         self.W = W
 
-        self.update_state = tf.keras.Sequential([
-            Conv2D(80, 3, activation=tf.nn.relu, padding="SAME"),
-            Conv2D(120, 1, activation=tf.nn.relu, padding="SAME"),
-            Conv2D(NO_CHANNELS, 1, activation=None, padding="SAME"),
-        ])
+        if full_model:
+            self.update_state = tf.keras.Sequential([
+                Conv2D(80, 3, activation=tf.nn.relu, padding="SAME"),
+                Conv2D(120, 1, activation=tf.nn.relu, padding="SAME"),
+                Conv2D(NO_CHANNELS, 1, activation=None, padding="SAME"),
+            ])
+        else:
+            self.update_state = tf.keras.Sequential([
+                Conv2D(NO_CHANNELS, 1, activation=None, padding="SAME"),
+            ])
         
         self(tf.zeros([1, H, W, 1 + NO_CHANNELS])) # dummy call to build the model
     

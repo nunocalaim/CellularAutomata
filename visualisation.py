@@ -154,3 +154,75 @@ def zoom(img, scale=4):
     img = np.repeat(img, scale, 0)
     img = np.repeat(img, scale, 1)
     return img
+
+def add_pixel(old_image):
+    new_image = old_image.copy()
+    indices = np.asarray(np.where(old_image == 1)).T
+    success = 0
+    k = 0
+    while (not success) or (k > 100):
+        k += 1
+        idx = np.random.randint(indices.shape[0])
+        x, y = indices[idx, :]
+        x_or_y = np.random.rand() < 0.5
+        pos_or_neg = np.random.rand() < 0.5
+        if x_or_y:
+            if pos_or_neg:
+                dx = 1
+                dy = 0
+            else:
+                dx = -1
+                dy = 0
+        else:
+            if pos_or_neg:
+                dx = 0
+                dy = 1
+            else:
+                dx = 0
+                dy = -1
+        nx = min(max(0, x + dx), 9)
+        ny = min(max(0, y + dy), 9)
+        if old_image[nx, ny] < 0.5:
+            new_image[nx, ny] = 1
+            success = 1
+    return new_image
+
+def make_videos_increase(folder, id_run, i_step, TST_EVOLVE, x, ca, color_lookup, images):
+    with VideoWriter(folder + '/output/Movie_test_increase_{}_{}.mp4'.format(id_run, i_step)) as vid:
+        for j in range(20):
+            x = ca.mutate(x, tf.expand_dims(images[j, :, :, :], -1))
+            for i in tqdm.trange(TR_EVOLVE):
+                x = ca(x)
+                image = zoom(tile2d(classify_and_color(ca, x)), scale=4)
+                im = np.uint8(image*255)
+                im = PIL.Image.fromarray(im)
+                draw = PIL.ImageDraw.Draw(im)
+                vid.add(np.uint8(im))
+    x = ca.initialize(images[0, :, :, :])
+    with VideoWriter(folder + '/CA/Movie_test_decrease_{}_{}.mp4'.format(id_run, i_step_v)) as vid:
+        for j in range(20):
+            x = ca.mutate(x, tf.expand_dims(images[19 - j, :, :, :], -1))
+            for i in tqdm.trange(TR_EVOLVE):
+                x = ca(x)
+                image = zoom(tile2d(classify_and_color(ca, x)), scale=4)
+                im = np.uint8(image*255)
+                im = PIL.Image.fromarray(im)
+                draw = PIL.ImageDraw.Draw(im)
+                vid.add(np.uint8(im))
+
+
+
+
+    with VideoWriter(folder + '/output/Movie_model_{}_{}.mp4'.format(id_run, i_step)) as vid:
+        for i in tqdm.trange(-1, TST_EVOLVE):
+            if MutateTestingQ and i == int(TST_EVOLVE / 2):
+                c_i = x[:, :, :, 0]
+                x = ca.mutate(x, tf.expand_dims(tf.random.shuffle(c_i), -1))
+            image = zoom(tile2d(classify_and_color(ca, x, color_lookup)), scale=4)
+            if i > -1:
+                x = ca(x)
+                image = zoom(tile2d(classify_and_color(ca, x, color_lookup)), scale=4)
+            im = np.uint8(image * 255)
+            im = PIL.Image.fromarray(im)
+            # draw = PIL.ImageDraw.Draw(im) # is this necessary?
+            vid.add(np.uint8(im))
