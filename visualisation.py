@@ -106,7 +106,6 @@ def make_run_videos(folder, id_run, i_step, TST_EVOLVE, MutateTestingQ, x, ca, c
                 image = zoom(tile2d(classify_and_color(ca, x, color_lookup)), scale=4)
             im = np.uint8(image * 255)
             im = PIL.Image.fromarray(im)
-            # draw = PIL.ImageDraw.Draw(im) # is this necessary?
             vid.add(np.uint8(im))
 
 def classify_and_color(ca, x, color_lookup):
@@ -187,42 +186,25 @@ def add_pixel(old_image):
             success = 1
     return new_image
 
-def make_videos_increase(folder, id_run, i_step, TST_EVOLVE, x, ca, color_lookup, images):
-    with VideoWriter(folder + '/output/Movie_test_increase_{}_{}.mp4'.format(id_run, i_step)) as vid:
-        for j in range(20):
-            x = ca.mutate(x, tf.expand_dims(images[j, :, :, :], -1))
-            for i in tqdm.trange(TR_EVOLVE):
-                x = ca(x)
-                image = zoom(tile2d(classify_and_color(ca, x)), scale=4)
-                im = np.uint8(image*255)
-                im = PIL.Image.fromarray(im)
-                draw = PIL.ImageDraw.Draw(im)
-                vid.add(np.uint8(im))
+def make_videos_increase(folder, id_run, i_step, TST_EVOLVE, ca, color_lookup, images):
+    no_steps = images.shape[0]
     x = ca.initialize(images[0, :, :, :])
-    with VideoWriter(folder + '/CA/Movie_test_decrease_{}_{}.mp4'.format(id_run, i_step_v)) as vid:
-        for j in range(20):
-            x = ca.mutate(x, tf.expand_dims(images[19 - j, :, :, :], -1))
-            for i in tqdm.trange(TR_EVOLVE):
-                x = ca(x)
-                image = zoom(tile2d(classify_and_color(ca, x)), scale=4)
-                im = np.uint8(image*255)
-                im = PIL.Image.fromarray(im)
-                draw = PIL.ImageDraw.Draw(im)
-                vid.add(np.uint8(im))
-
-
-
-
-    with VideoWriter(folder + '/output/Movie_model_{}_{}.mp4'.format(id_run, i_step)) as vid:
-        for i in tqdm.trange(-1, TST_EVOLVE):
-            if MutateTestingQ and i == int(TST_EVOLVE / 2):
-                c_i = x[:, :, :, 0]
-                x = ca.mutate(x, tf.expand_dims(tf.random.shuffle(c_i), -1))
-            image = zoom(tile2d(classify_and_color(ca, x, color_lookup)), scale=4)
-            if i > -1:
+    with VideoWriter(folder + '/output/Movie_test_increase_{}_{}.mp4'.format(id_run, i_step)) as vid:
+        for j in range(no_steps):
+            x = ca.mutate(x, tf.expand_dims(images[j, :, :, :], -1))
+            for i in tqdm.trange(TST_EVOLVE):
                 x = ca(x)
                 image = zoom(tile2d(classify_and_color(ca, x, color_lookup)), scale=4)
-            im = np.uint8(image * 255)
-            im = PIL.Image.fromarray(im)
-            # draw = PIL.ImageDraw.Draw(im) # is this necessary?
-            vid.add(np.uint8(im))
+                im = np.uint8(image * 255)
+                im = PIL.Image.fromarray(im)
+                vid.add(np.uint8(im))
+    x = ca.initialize(images[0, :, :, :])
+    with VideoWriter(folder + '/output/Movie_test_decrease_{}_{}.mp4'.format(id_run, i_step)) as vid:
+        for j in range(no_steps):
+            x = ca.mutate(x, tf.expand_dims(images[no_steps - 1 - j, :, :, :], -1))
+            for i in tqdm.trange(TST_EVOLVE):
+                x = ca(x)
+                image = zoom(tile2d(classify_and_color(ca, x, color_lookup)), scale=4)
+                im = np.uint8(image * 255)
+                im = PIL.Image.fromarray(im)
+                vid.add(np.uint8(im))
