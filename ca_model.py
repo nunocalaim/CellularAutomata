@@ -57,6 +57,16 @@ class CAModel(tf.keras.Model):
         return tf.concat([images, state], -1) # just concatenating
 
     @tf.function
+    def initialize_random(self, images):
+        '''
+        input: images of size (batch, h, w)
+        output: initial CA state full of 0's for positions other than the images. shape (batch, h, w, 1 + channel_n)
+        '''
+        state = tf.random.normal([tf.shape(images)[0], self.H, self.W, self.NO_CHANNELS]) # size (batch, h, w, channel_n) with random numbers
+        images = tf.reshape(images, [-1, self.H, self.W, 1]) # our images we add an extra dimension
+        return tf.concat([images, state], -1) # just concatenating
+
+    @tf.function
     def classify(self, x):
         '''
         The last NO_CLASSES layers are the classification predictions, one channel
@@ -139,8 +149,13 @@ def train_step(trainer, ca, x, y, y_label, TR_EVOLVE, NO_CLASSES, MutateTraining
     trainer.apply_gradients(zip(grads, ca.weights)) # Keras and ADAM magic 
     
     if MutateTrainingQ:
-        c_i = x[:, :, :, 0]
-        x = ca.mutate(x, tf.expand_dims(tf.random.shuffle(c_i), -1))
+        # c_i = x[:, :, :, 0] # good
+        # x = ca.initialize(x[:, :, :, 0]) # good
+        # x = ca.initialize_random(x[:, :, :, 0]) # good
+        # x = ca.initialize(tf.random.shuffle(x[:, :, :, 0])) # good
+        x = ca.initialize_random(tf.random.shuffle(x[:, :, :, 0])) # bad but why
+        # x = ca.mutate(x, tf.expand_dims(x[:, :, :, 0], -1)) # good
+        # x = ca.mutate(x, tf.expand_dims(tf.random.shuffle(x[:, :, :, 0]), -1)) # ideal but bad
     
     iter_n = TR_EVOLVE - iter_n # Number of iterations of the CA for each training step
     with tf.GradientTape() as g: # GradientTape does automatic differentiation on the learnable_parameters of our model

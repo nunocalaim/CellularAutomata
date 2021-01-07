@@ -186,9 +186,12 @@ def add_pixel(old_image):
             success = 1
     return new_image
 
-def make_videos_increase(folder, id_run, i_step, TST_EVOLVE, ca, color_lookup, images):
+def make_videos_increase(folder, id_run, i_step, TST_EVOLVE, ca, color_lookup, images, InitializeRandomQ):
     no_steps = images.shape[0]
-    x = ca.initialize(images[0, :, :, :])
+    if InitializeRandomQ:
+        x = ca.initialize_random(images[0, :, :, :])
+    else:
+        x = ca.initialize(images[0, :, :, :])
     with VideoWriter(folder + '/output/Movie_test_increase_{}_{}.mp4'.format(id_run, i_step)) as vid:
         for j in range(no_steps):
             x = ca.mutate(x, tf.expand_dims(images[j, :, :, :], -1))
@@ -198,7 +201,10 @@ def make_videos_increase(folder, id_run, i_step, TST_EVOLVE, ca, color_lookup, i
                 im = np.uint8(image * 255)
                 im = PIL.Image.fromarray(im)
                 vid.add(np.uint8(im))
-    x = ca.initialize(images[0, :, :, :])
+    if InitializeRandomQ:
+        x = ca.initialize_random(images[0, :, :, :])
+    else:
+        x = ca.initialize(images[0, :, :, :])
     with VideoWriter(folder + '/output/Movie_test_decrease_{}_{}.mp4'.format(id_run, i_step)) as vid:
         for j in range(no_steps):
             x = ca.mutate(x, tf.expand_dims(images[no_steps - 1 - j, :, :, :], -1))
