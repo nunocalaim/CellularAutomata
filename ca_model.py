@@ -147,7 +147,6 @@ def train_step(trainer, ca, x, y, y_label, TR_EVOLVE, NO_CLASSES, MutateTraining
     grads = g.gradient(loss_b, ca.weights) # Gradient Tape and Keras doing its magic
     grads = [g/(tf.norm(g)+1e-8) for g in grads] # Normalising the gradients uh?
     trainer.apply_gradients(zip(grads, ca.weights)) # Keras and ADAM magic 
-    
 
     if MutateTrainingQ:
         indices = tf.range(start=0, limit=tf.shape(x)[0], dtype=tf.int32)
