@@ -148,20 +148,24 @@ def train_step(trainer, ca, x, y, y_label, TR_EVOLVE, NO_CLASSES, MutateTraining
     grads = [g/(tf.norm(g)+1e-8) for g in grads] # Normalising the gradients uh?
     trainer.apply_gradients(zip(grads, ca.weights)) # Keras and ADAM magic 
     
+
     if MutateTrainingQ:
-        # c_i = x[:, :, :, 0] # good
-        # x = ca.initialize(x[:, :, :, 0]) # good
-        # x = ca.initialize_random(x[:, :, :, 0]) # good
-        # x = ca.initialize(tf.random.shuffle(x[:, :, :, 0])) # good
-        x = ca.initialize_random(tf.random.shuffle(x[:, :, :, 0])) # bad but why
-        # x = ca.mutate(x, tf.expand_dims(x[:, :, :, 0], -1)) # good
-        # x = ca.mutate(x, tf.expand_dims(tf.random.shuffle(x[:, :, :, 0]), -1)) # ideal but bad
+        indices = tf.range(start=0, limit=tf.shape(x)[0], dtype=tf.int32)
+        shuffled_indices = tf.random.shuffle(indices)
+
+        shuffled_images = tf.gather(x[:, :, :, 0], shuffled_indices)
+        x = ca.mutate(x, tf.expand_dims(shuffled_images, -1))
+        shuffled_y = tf.gather(y, shuffled_indices)
+        shuffled_y_label = tf.gather(y_label, shuffled_indices)
+    else:
+        shuffled_y = y
+        shuffled_y_label = y_label
     
     iter_n = TR_EVOLVE - iter_n # Number of iterations of the CA for each training step
     with tf.GradientTape() as g: # GradientTape does automatic differentiation on the learnable_parameters of our model
         for i_iter in tf.range(iter_n): # Basically let time evolve
             x = ca(x) # update the CA according to call method? ca(x) = ca.call(x)?
-        loss_a, c_l_a = batch_l2_loss(ca, x, y, y_label, NO_CLASSES) # compute the scalar loss
+        loss_a, c_l_a = batch_l2_loss(ca, x, shuffled_y, shuffled_y_label, NO_CLASSES) # compute the scalar loss
     grads = g.gradient(loss_a, ca.weights) # Gradient Tape and Keras doing its magic
     grads = [g/(tf.norm(g)+1e-8) for g in grads] # Normalising the gradients uh?
     trainer.apply_gradients(zip(grads, ca.weights)) # Keras and ADAM magic 
