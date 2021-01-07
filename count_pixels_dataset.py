@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 def class_indice_f(no_pixels, limits_classes):
     '''
@@ -28,11 +29,11 @@ def to_classes_dim_label(x, y, limits_classes):
 def new_image(no_pixels, H, W):
     X = np.zeros((H, W), np.float32)
     pixels_placed = 1
-    first_pixel = [int(H/2), int(W/2)] # we insert the first pixel at the center of the image
+    first_pixel = (int(H/2), int(W/2)) # we insert the first pixel at the center of the image
     positions_colored = [first_pixel]
     X[first_pixel[0], first_pixel[1]] = 1
     while pixels_placed < no_pixels:
-        base_pixel = np.random.choice(positions_colored)
+        base_pixel = random.choice(positions_colored)
         x, y = base_pixel[0], base_pixel[1]
         if np.random.rand() < 0.5:
             if np.random.rand() < 0.5:
@@ -48,7 +49,7 @@ def new_image(no_pixels, H, W):
             else:
                 dx = 0
                 dy = -1
-        test_pixel = [min(max(0, x + dx), H), min(max(0, y + dy), W)]
+        test_pixel = (min(max(0, x + dx), H-1), min(max(0, y + dy), W-1))
         if test_pixel not in positions_colored:
             pixels_placed += 1
             positions_colored.append(test_pixel)
