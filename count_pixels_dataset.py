@@ -1,36 +1,5 @@
 import numpy as np
 
-def get_next_pixel(base_pixel, positions_colored):
-    x, y = base_pixel[0], base_pixel[1]
-    keep_going = 1
-    j = 0
-    while keep_going and j < 10:
-        j += 1
-        x_or_y = np.random.rand() < 0.5
-        pos_or_neg = np.random.rand() < 0.5
-        if x_or_y:
-            if pos_or_neg:
-                dx = 1
-                dy = 0
-            else:
-                dx = -1
-                dy = 0
-        else:
-            if pos_or_neg:
-                dx = 0
-                dy = 1
-            else:
-                dx = 0
-                dy = -1
-        nx = min(max(0, x + dx), 9)
-        ny = min(max(0, y + dy), 9)
-        test_pixel = [nx, ny]
-        if test_pixel in positions_colored:
-            pass
-        else:
-            return 1, test_pixel
-    return 0, [0, 0]
-
 def class_indice_f(no_pixels, limits_classes):
     '''
     find the indice of the class of the no_pixels
@@ -56,26 +25,59 @@ def to_classes_dim_label(x, y, limits_classes):
         y_res[i, :, :, class_indice] = x[i, :, :]
     return y_res.astype(np.float32)
 
+def new_image(no_pixels, H, W):
+    X = np.zeros((H, W), np.float32)
+    pixels_placed = 1
+    first_pixel = [int(H/2), int(W/2)] # we insert the first pixel at the center of the image
+    positions_colored = [first_pixel]
+    X[first_pixel[0], first_pixel[1]] = 1
+    while pixels_placed < no_pixels:
+        base_pixel = np.random.choice(positions_colored)
+        x, y = base_pixel[0], base_pixel[1]
+        if np.random.rand() < 0.5:
+            if np.random.rand() < 0.5:
+                dx = 1
+                dy = 0
+            else:
+                dx = -1
+                dy = 0
+        else:
+            if np.random.rand() < 0.5:
+                dx = 0
+                dy = 1
+            else:
+                dx = 0
+                dy = -1
+        test_pixel = [min(max(0, x + dx), H), min(max(0, y + dy), W)]
+        if test_pixel not in positions_colored:
+            pixels_placed += 1
+            positions_colored.append(test_pixel)
+            X[test_pixel[0], test_pixel[1]] = 1
+    return X        
 
-def build_dataset(size_ds, H, W, max_pixels=20, split_ds=0.8):
+def build_dataset(size_ds, H, W, limits_classes, max_pixels=20, split_ds=0.8, boundary_p=0.5):
+    '''
+    This function creates a balanced dataset, with special incidence for boundary conditions
+    '''
     X = np.zeros((size_ds, H, W), np.float32)
     Y = np.zeros((size_ds), np.float32)
     
     for i in range(size_ds):
-        no_pixels = np.random.randint(max_pixels)
-        pixels_placed = 1
-        first_pixel = [4, 4]
-        positions_colored = [first_pixel]
-        X[i, first_pixel[0], first_pixel[1]] = 1
-        for j in range(no_pixels - 1):
-            base_pixel = positions_colored[np.random.choice(len(positions_colored))]
-            sucess, next_pixel = get_next_pixel(base_pixel, positions_colored)
-            if sucess:
-                pixels_placed += 1
-                positions_colored.append(next_pixel)
-                X[i, next_pixel[0], next_pixel[1]] = 1
-        Y[i] = pixels_placed
-        x_train, x_test = np.split(X, [int(size_ds*split_ds)])
-        y_train, y_test = np.split(Y, [int(size_ds*split_ds)])
-
+        if np.random.rand() < boundary_p:
+            no_pixels = np.random.choice(limits_classes)
+            if np.random.rand() < 0.5:
+                no_pixels += 1
+        else:
+            no_classes = len(limits_classes) + 1
+            class_i = np.random.choice(no_classes)
+            if class_i == 0:
+                no_pixels = np.random.randint(limits_classes[0]) + 1
+            elif class_i == no_classes - 1:
+                no_pixels = np.random.randint(limits_classes[-1], max_pixels) + 1
+            else:
+                no_pixels = np.random.randint(limits_classes[class_i-1], limits_classes[class_i]) + 1
+        X[i, :, :] = new_image(no_pixels, H, W)
+        Y[i] = no_pixels
+    x_train, x_test = np.split(X, [int(size_ds*split_ds)])
+    y_train, y_test = np.split(Y, [int(size_ds*split_ds)])
     return x_train, x_test, y_train, y_test
