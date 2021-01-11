@@ -4,7 +4,7 @@ import numpy as np
 
 class CAModel(tf.keras.Model):
     
-    def __init__(self, NO_CHANNELS, NO_CLASSES, H, W, add_noise=True, full_model=True):
+    def __init__(self, NO_CHANNELS, NO_CLASSES, H, W, add_noise=True, model_complexity='simplest'):
         super().__init__()
         self.add_noise = add_noise
         self.NO_CHANNELS = NO_CHANNELS
@@ -12,16 +12,22 @@ class CAModel(tf.keras.Model):
         self.H = H
         self.W = W
 
-        if full_model:
+        if model_complexity == 'simplest':
+            self.update_state = tf.keras.Sequential([
+                Conv2D(NO_CHANNELS, 3, activation=None, padding="SAME"),
+            ])
+        elif model_complexity == 'middle':
+            self.update_state = tf.keras.Sequential([
+                Conv2D(40, 3, activation=tf.nn.relu, padding="SAME"),
+                Conv2D(NO_CHANNELS, 1, activation=None, padding="SAME"),
+            ])
+        else:
             self.update_state = tf.keras.Sequential([
                 Conv2D(80, 3, activation=tf.nn.relu, padding="SAME"),
                 Conv2D(120, 1, activation=tf.nn.relu, padding="SAME"),
                 Conv2D(NO_CHANNELS, 1, activation=None, padding="SAME"),
             ])
-        else:
-            self.update_state = tf.keras.Sequential([
-                Conv2D(NO_CHANNELS, 1, activation=None, padding="SAME"),
-            ])
+            
         
         self(tf.zeros([1, H, W, 1 + NO_CHANNELS])) # dummy call to build the model
     
@@ -121,11 +127,11 @@ def export_model(folder, id_run, ca, i, loss_log, loss_log_classes):
     ca.save_weights(folder + '/saved_models/' + id_run + '_run_no_{}'.format(i))
     np.savez(folder + '/saved_models/' + id_run + '_run_no_{}_loss'.format(i), loss_log=loss_log, loss_log_classes=loss_log_classes)
 
-def get_model(folder, id_run, i, NO_CHANNELS, NO_CLASSES, H, W, ADD_NOISE):
+def get_model(folder, id_run, i, NO_CHANNELS, NO_CLASSES, H, W, ADD_NOISE, model_complexity):
     '''
     Gets the models parameters
     '''
-    ca = CAModel(NO_CHANNELS, NO_CLASSES, H, W, add_noise=ADD_NOISE)
+    ca = CAModel(NO_CHANNELS, NO_CLASSES, H, W, add_noise=ADD_NOISE, model_complexity=model_complexity)
     ca.load_weights(folder + '/saved_models/' + id_run + '_run_no_{}'.format(i))
     res = np.load(folder + '/saved_models/' + id_run + '_run_no_{}_loss.npz'.format(i))
     loss_log = res['loss_log']
@@ -139,19 +145,18 @@ def train_step(trainer, ca, x, y, y_label, TR_EVOLVE, NO_CLASSES, MutateTraining
     x is the current CA state. its shape is (batch_size, height, width, no_channels).
     y is the correct label out of 10 possibilities. its shape is (batch_size, ?)
     '''
-    iter_n = max(2, np.random.randint(TR_EVOLVE)) # Number of initial iterations of the CA for each training step
+    iter_n = np.clip(np.random.randint(TR_EVOLVE), 2, TR_EVOLVE-2) # Number of initial iterations of the CA for each training step
     with tf.GradientTape() as g: # GradientTape does automatic differentiation on the learnable_parameters of our model
         for i_iter in tf.range(iter_n): # Basically let time evolve
-            x = ca(x) # update the CA according to call method? ca(x) = ca.call(x)?
+            x = ca(x) # update the CA according to call method: ca(x) = ca.call(x)
         loss_b, c_l_b = batch_l2_loss(ca, x, y, y_label, NO_CLASSES) # compute the scalar loss
-    grads = g.gradient(loss_b, ca.weights) # Gradient Tape and Keras doing its magic
+    grads = g.gradient(loss_b, ca.weights) # Gradient Tape and Keras doing its magic of automatic differentiation
     grads = [g/(tf.norm(g)+1e-8) for g in grads] # Normalising the gradients uh?
-    trainer.apply_gradients(zip(grads, ca.weights)) # Keras and ADAM magic 
+    trainer.apply_gradients(zip(grads, ca.weights)) # change weights according to grads, with learning rule defined by trainer (ADAM) 
 
     if MutateTrainingQ:
         indices = tf.range(start=0, limit=tf.shape(x)[0], dtype=tf.int32)
         shuffled_indices = tf.random.shuffle(indices)
-
         shuffled_images = tf.gather(x[:, :, :, 0], shuffled_indices)
         x = ca.mutate(x, tf.expand_dims(shuffled_images, -1))
         shuffled_y = tf.gather(y, shuffled_indices)
@@ -160,12 +165,12 @@ def train_step(trainer, ca, x, y, y_label, TR_EVOLVE, NO_CLASSES, MutateTraining
         shuffled_y = y
         shuffled_y_label = y_label
     
-    iter_n = TR_EVOLVE - iter_n # Number of iterations of the CA for each training step
+    iter_n = TR_EVOLVE - iter_n # Number of subsequent iterations of the CA for each training step
     with tf.GradientTape() as g: # GradientTape does automatic differentiation on the learnable_parameters of our model
         for i_iter in tf.range(iter_n): # Basically let time evolve
-            x = ca(x) # update the CA according to call method? ca(x) = ca.call(x)?
+            x = ca(x) # update the CA according to call method: ca(x) = ca.call(x)
         loss_a, c_l_a = batch_l2_loss(ca, x, shuffled_y, shuffled_y_label, NO_CLASSES) # compute the scalar loss
-    grads = g.gradient(loss_a, ca.weights) # Gradient Tape and Keras doing its magic
+    grads = g.gradient(loss_a, ca.weights) # Gradient Tape and Keras doing its magic of automatic differentiation
     grads = [g/(tf.norm(g)+1e-8) for g in grads] # Normalising the gradients uh?
-    trainer.apply_gradients(zip(grads, ca.weights)) # Keras and ADAM magic 
+    trainer.apply_gradients(zip(grads, ca.weights)) # change weights according to grads, with learning rule defined by trainer (ADAM) 
     return x, loss_b + loss_a, [c_l_b[i_list] + c_l_a[i_list] for i_list in range(NO_CLASSES)]
