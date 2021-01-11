@@ -56,7 +56,7 @@ def new_image(no_pixels, H, W):
             X[test_pixel[0], test_pixel[1]] = 1
     return X        
 
-def build_dataset(size_ds, H, W, limits_classes, max_pixels=20, split_ds=0.8, boundary_p=0.5):
+def build_dataset(size_ds, H, W, limits_classes, max_pixels=20, split_ds=0.8, boundary_p=0.5, seed=1):
     '''
     This function creates a balanced dataset, with special incidence for boundary conditions
     '''
