@@ -51,6 +51,7 @@ import numpy as np
 import tensorflow as tf
 from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
 import tqdm, PIL.Image
+import count_pixels_dataset as cpd
 
 def plot_loss(loss_log, loss_log_classes, folder, id_run, limits_c_p, color_lookup, save=False):
     plt.figure(figsize=(10, 4))
@@ -148,8 +149,8 @@ def tile2d(a):
     a = a.reshape([height, width] + list(a.shape[1:])) # reshaped a to (height, width, H, W, 3)
     a = np.rollaxis(a, 2, 1) # transform it into shape (height, H, width, W, 3)
     a = a.reshape([H*height, W*width] + list(a.shape[4:])) # transform into (height * H, width * W, 3)
-    a = np.insert(a, [i*W for i in range(width + 1)], 0, axis=1) # add borders between images
-    a = np.insert(a, [i*H for i in range(height + 1)], 0, axis=0)
+    a = np.insert(a, [i*W for i in range(width + 1)], 1, axis=1) # add borders between images
+    a = np.insert(a, [i*H for i in range(height + 1)], 1, axis=0)
     return a
 
 def zoom(img, scale=4):
@@ -192,7 +193,7 @@ def add_pixel(old_image):
             success = 1
     return new_image
 
-def make_videos_increase(folder, id_run, i_step, TST_EVOLVE, ca, color_lookup, images, InitializeRandomQ):
+def make_videos_increase(folder, id_run, i_step, TST_EVOLVE, ca, color_lookup, images, InitializeRandomQ, limits_classes):
     no_steps = images.shape[0]
     if InitializeRandomQ:
         x = ca.initialize_random(images[0, :, :, :])
@@ -205,6 +206,10 @@ def make_videos_increase(folder, id_run, i_step, TST_EVOLVE, ca, color_lookup, i
                 x = ca(x)
                 image = zoom(tile2d(classify_and_color(ca, x, color_lookup)), scale=4)
                 im = np.uint8(image * 255)
+                im[:4, :, :] = np.uint8(color_lookup[cpd.class_indice_f(j+1, limits_classes), :].numpy())
+                im[-4:, :, :] = np.uint8(color_lookup[cpd.class_indice_f(j+1, limits_classes), :].numpy())
+                im[:, :4, :] = np.uint8(color_lookup[cpd.class_indice_f(j+1, limits_classes), :].numpy())
+                im[:, -4:, :] = np.uint8(color_lookup[cpd.class_indice_f(j+1, limits_classes), :].numpy())
                 im = PIL.Image.fromarray(im)
                 vid.add(np.uint8(im))
     if InitializeRandomQ:
@@ -218,5 +223,9 @@ def make_videos_increase(folder, id_run, i_step, TST_EVOLVE, ca, color_lookup, i
                 x = ca(x)
                 image = zoom(tile2d(classify_and_color(ca, x, color_lookup)), scale=4)
                 im = np.uint8(image * 255)
+                im[:4, :, :] = np.uint8(color_lookup[cpd.class_indice_f(j+1, limits_classes), :].numpy())
+                im[-4:, :, :] = np.uint8(color_lookup[cpd.class_indice_f(j+1, limits_classes), :].numpy())
+                im[:, :4, :] = np.uint8(color_lookup[cpd.class_indice_f(j+1, limits_classes), :].numpy())
+                im[:, -4:, :] = np.uint8(color_lookup[cpd.class_indice_f(j+1, limits_classes), :].numpy())
                 im = PIL.Image.fromarray(im)
                 vid.add(np.uint8(im))
