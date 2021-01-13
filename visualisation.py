@@ -136,14 +136,20 @@ def color_labels(x, output_x, color_lookup):
     return tf.cast(rgb_pixels, tf.float32) / 255.
 
 def tile2d(a):
-    a = np.asarray(a)
-    w = int(np.ceil(np.sqrt(len(a))))
-    th, tw = a.shape[1:3]
-    pad = (w-len(a))%w
+    '''
+    a has shape (N, H, W, 3), where N is the number of images we will show 
+    '''
+    a = np.asarray(a) # make sure it is an array
+    width = int(np.ceil(np.sqrt(len(a)))) # Number of columns for the tile
+    H, W = a.shape[1:3] # Height and Width of each image
+    pad = (width - len(a)) % width
     a = np.pad(a, [(0, pad)]+[(0, 0)]*(a.ndim-1), 'constant')
-    h = len(a)//w
-    a = a.reshape([h, w]+list(a.shape[1:]))
-    a = np.rollaxis(a, 2, 1).reshape([th*h, tw*w]+list(a.shape[4:]))
+    height = len(a) // width # Number of rows for the tile
+    a = a.reshape([height, width] + list(a.shape[1:])) # reshaped a to (height, width, H, W, 3)
+    a = np.rollaxis(a, 2, 1) # transform it into shape (height, H, width, W, 3)
+    a = a.reshape([H*height, W*width] + list(a.shape[4:])) # transform into (height * H, width * W, 3)
+    a = np.insert(a, [i*W for i in range(width + 1)], 0, axis=1) # add borders between images
+    a = np.insert(a, [i*H for i in range(height + 1)], 0, axis=0)
     return a
 
 def zoom(img, scale=4):
