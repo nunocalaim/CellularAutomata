@@ -54,3 +54,7 @@ saved_models/checkpoint
 saved_models/
 
 output/
+
+train.csv
+
+emotion_dataset.npy
