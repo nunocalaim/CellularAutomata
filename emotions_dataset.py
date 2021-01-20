@@ -12,7 +12,7 @@ def to_classes_dim_label(x, y, NO_CLASSES):
         y_res[i, :, :, y[i]] = np.ones((x.shape[1], x.shape[2]))
     return y_res.astype(np.float32)
 
-def build_dataset(folder, target_classes, H, W, SEED_DATASET, ds_str):
+def build_dataset(folder, target_classes, H, W, SEED_DATASET, ds_str, DataBalancingQ, DataAugmentationQ):
     with open(folder + '/dataset/emotion_dataset.npy', 'rb') as f:
         X = np.load(f)
         y = np.load(f)
@@ -21,11 +21,47 @@ def build_dataset(folder, target_classes, H, W, SEED_DATASET, ds_str):
 
     X_final = np.zeros((0, H, W))
     y_final = np.zeros((0,))
+    if DataBalancingQ:
+        max_class = 0
+        for new_class, class_label in enumerate(class_labels):
+            idx = np.where(y == class_label)[0]
+            max_class = max(max_class, idx.shape[0])
+
     for new_class, class_label in enumerate(class_labels):
+
+        X_sub = np.zeros((0, H, W))
+        y_sub = np.zeros((0,))
+
         idx = np.where(y == class_label)[0]
         len_class = idx.shape[0]
-        X_final = np.concatenate((X_final, X[idx, :, :, 0]))
-        y_final = np.concatenate((y_final, new_class * np.ones(len_class)))
+
+        X_sub = np.concatenate((X_sub, X[idx, :, :, 0]))
+        y_sub = np.concatenate((y_sub, new_class * np.ones(len_class)))
+        if DataAugmentationQ:
+            X_sub = np.concatenate((X_sub, X[idx, :, ::-1, 0]))
+            y_sub = np.concatenate((y_sub, new_class * np.ones(len_class)))
+            X_sub = np.concatenate((X_sub, X[idx, :, :, 0] / 2))
+            y_sub = np.concatenate((y_sub, new_class * np.ones(len_class)))
+            X_sub = np.concatenate((X_sub, X[idx, :, ::-1, 0] / 2))
+            y_sub = np.concatenate((y_sub, new_class * np.ones(len_class)))
+            X_sub = np.concatenate((X_sub, np.clip(X[idx, :, :, 0] * 1.2, 0, 255)))
+            y_sub = np.concatenate((y_sub, new_class * np.ones(len_class)))
+            X_sub = np.concatenate((X_sub, np.clip(X[idx, :, ::-1, 0] * 1.2, 0, 255)))
+            y_sub = np.concatenate((y_sub, new_class * np.ones(len_class)))
+            if DataBalancingQ:
+                remaining_items = 6 * (max_class - len_class)
+                idx_rnd = np.random.choice(idx, remaining_items)
+                X_sub = np.concatenate((X_sub, X[idx_rnd, :, :, 0]))
+                y_sub = np.concatenate((y_sub, new_class * np.ones(remaining_items)))
+        elif DataBalancingQ:
+            remaining_items = max_class - len_class
+            idx_rnd = np.random.choice(idx, remaining_items)
+            X_sub = np.concatenate((X_sub, X[idx_rnd, :, :, 0]))
+            y_sub = np.concatenate((y_sub, new_class * np.ones(remaining_items)))
+
+        X_final = np.concatenate((X_final, X_sub))
+        y_final = np.concatenate((y_final, y_sub))
+    
     X_final /= 255
     X_final = X_final.astype(np.float32)
     y_final = y_final.astype(np.int)
