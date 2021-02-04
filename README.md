@@ -4,10 +4,10 @@ In this work we create agents that solely with local information can coordinate 
 
 This project is structured as follows:
 
-### Cellular_Automata.ipynb
+### Cellular_Automata
 This is the notebook I use when working on a new task. It has many options that are useful when trying out new things. **Ideal if you want to fully customize this code for a new task.** 
 
-### Cellular_Automata_task.ipynb
+### Cellular_Automata_task
 where task is either: fruits, count_digits, xor, emotions, frozen_noise
 
 These notebooks contain all the necessary code for fully training the cellular automata for a particular task. **Ideal if you just want to see how the agents were trained and tested for a particular task**
