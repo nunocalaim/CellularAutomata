@@ -4,13 +4,13 @@ import tensorflow as tf
 from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
 import tqdm, PIL.Image 
 
-def plot_loss(loss_log, loss_log_classes, folder, id_run, target_classes, color_lookup, save=False):
+def plot_loss(loss_log, loss_log_classes, folder, id_run, classes_labels, color_lookup, save=False):
     plt.figure(figsize=(10, 4))
     plt.title('Loss history (log10)')
     plt.plot(np.log10(loss_log), '.', alpha=0.1)
     for i in range(loss_log_classes.shape[1]):
         if loss_log_classes.shape[0] > 0:
-            plt.plot(np.log10(loss_log_classes[:, i]), alpha=0.5, label=target_classes[i], color=color_lookup[i].numpy()/255)
+            plt.plot(np.log10(loss_log_classes[:, i]), alpha=0.5, label=classes_labels[i], color=color_lookup[i].numpy()/255)
     plt.legend()
     if save:
         plt.savefig(folder + '/output/log_loss_{}'.format(id_run))
@@ -69,13 +69,13 @@ def classify_and_color(ca, x, color_lookup):
     output_ca = ca.classify(x) # x[:, :, :, -NO_CLASSES:] shape = (b, h, w, NO_CLASSES) where we want values 0 if not that number and 1 if that number
     return color_images(current_image, output_ca, color_lookup)
 
-def color_images(x, output_x, color_lookup, alpha_color=0.3):
+def color_images(x, output_x, color_lookup, alpha_color=0.3, default_class_threshold=0.1):
     '''
     input x grayscale image: its shape is ([batch_size, ]height, width)
     input output_x: the output of the CA for the image x. its shape is ([batch_size, ]height, width, NO_CLASSES)
     output: rgba_pixels, with numbers between 0 and 1. its shate is ([b, ]h, w, 4)
     '''
-    black = tf.fill(list(x.shape) + [1], 0.01) # an array filled with 0.01 of shape ([b, ]h, w, 1). 0.01 is the minimum value for outputs to be considered
+    black = tf.fill(list(x.shape) + [1], default_class_threshold) # an array filled with default_class_threshold of shape ([b, ]h, w, 1). 0.01 is the minimum value for outputs to be considered
     class_or_black =  tf.concat([output_x, black], -1) # the voting for the NO_CLASSES+1 different categories. (NO_CLASSES colors + undecided. its shape is ([b, ]h, w, NO_CLASSES+1)
     classified_class = tf.argmax(class_or_black, -1) # the result of the vote.  its shape is ([b, ]h, w)
     rgb_pixels = tf.gather(color_lookup, classified_class) # And now I suppose this shape is ([b, ]h, w, 3)
