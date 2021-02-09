@@ -2,26 +2,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
-import tqdm, PIL.Image 
+import tqdm, PIL.Image
 
 def plot_loss(loss_log, loss_log_classes, folder, id_run, target_classes, color_lookup, save=False):
     plt.figure(figsize=(10, 4))
     plt.title('Loss history (log10)')
     plt.plot(np.log10(loss_log), '.', alpha=0.1)
-    max_log_loss = -10
-    min_log_loss = 10
+    log_loss_class = np.log10(loss_log_classes)
+    min_log_loss, max_log_loss = np.nanpercentile(log_loss_class, [0, 97])
     for i in range(loss_log_classes.shape[1]):
-        loss_log_class = loss_log_classes[:, i]
-        if loss_log_class.shape[0] > 0:
-            log_loss_class = np.log10(loss_log_class)
-            tmp_min, tmp_max = np.percentile(log_loss_class, [0, 97])
-            max_log_loss = max(max_log_loss, tmp_max)
-            min_log_loss = min(min_log_loss, tmp_min)
-            plt.plot(log_loss_classes, alpha=0.5, label=target_classes[i], color=color_lookup[i].numpy()/255)
-    if max_log_loss == -10:
-        plt.ylim([-4, 5])
-    else:
-        plt.ylim([min_log_loss, max_log_loss])
+        plt.plot(log_loss_class[:, i], alpha=0.5, label=target_classes[i], color=color_lookup[i].numpy()/255)
+    plt.ylim([min_log_loss - 0.1, max_log_loss + 0.1])
     plt.legend()
     if save:
         plt.savefig(folder + '/output/log_loss_{}'.format(id_run))

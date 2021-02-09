@@ -113,11 +113,12 @@ def batch_l2_loss(ca, x, y, label_vector, NO_CLASSES):
     '''
     i_l = individual_l2_loss(ca, x, y)
     # tf.print('maximum loss of each image in batch ', i_l.shape, tf.math.reduce_max(i_l))
-    class_loss = np.zeros((NO_CLASSES))
+    class_loss = []
     for i in range(NO_CLASSES):
         idx = tf.where(label_vector == i)
         gather = tf.gather(i_l, tf.reshape(idx, (-1,)))
-        class_loss[i] = tf.reduce_mean(gather).numpy()
+        gather_mean = tf.reduce_mean(gather)
+        class_loss.append(gather_mean)
     return tf.reduce_mean(i_l), class_loss
 
 def export_model(folder, id_run, ca, i, loss_log, loss_log_classes):
@@ -172,5 +173,5 @@ def train_step(trainer, ca, x, y, y_label, TR_EVOLVE, NO_CLASSES, MutateTraining
         loss_a, c_l_a = batch_l2_loss(ca, x, shuffled_y, shuffled_y_label, NO_CLASSES) # compute the scalar loss
     grads = g.gradient(loss_a, ca.weights) # Gradient Tape and Keras doing its magic of automatic differentiation
     grads = [g/(tf.norm(g)+1e-8) for g in grads] # Normalising the gradients uh?
-    trainer.apply_gradients(zip(grads, ca.weights)) # change weights according to grads, with learning rule defined by trainer (ADAM) 
-    return x, loss_b + loss_a, c_l_b + c_l_a
+    trainer.apply_gradients(zip(grads, ca.weights)) # change weights according to grads, with learning rule defined by trainer (ADAM)
+    return x, loss_b + loss_a, [c_l_b[i_list] + c_l_a[i_list] for i_list in range(NO_CLASSES)]
