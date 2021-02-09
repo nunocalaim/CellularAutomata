@@ -102,6 +102,9 @@ def get_dataset(task, opt, RebuildDatasetQ, folder):
         try:
             res = np.load(folder + '/dataset/{}/{}.npz'.format(task, ds_str))
             x_train, x_test, y_train, y_test = res['x_train'], res['x_test'], res['y_train'], res['y_test']
+            if task == 'xor':
+                res = np.load(folder + '/dataset/{}/{}.npz'.format(task, ds_str_test))
+                x_train_ignore, x_test, y_train_ignore, y_test = res['x_train'], res['x_test'], res['y_train'], res['y_test']
         except:
             BuildDS = True
     if BuildDS:
