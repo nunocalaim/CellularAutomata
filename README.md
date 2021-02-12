@@ -1,6 +1,6 @@
 # Cellular Automata learn to distribute information.
 
-In this work we create agents that solely with local information can coordinate together to collectively agree on an image classification. Each agent observes one pixel of the image and its immediate neighbours.
+In this work we create agents that solely with local information can coordinate together to collectively agree on an image classification. Each agent observes one pixel of the image and its immediate neighbours. You can read a [detailed explanation of this work in my personal website](https://nunocalaim.github.io/cellular_automata)
 
 This project is structured as follows:
 
