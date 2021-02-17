@@ -4,10 +4,11 @@ dataset/frozen_noise/*
 dataset/count_pixels/*
 dataset/brain_tumor
 dataset/emotions
-dataset/fruits
+dataset/fruits/*
 !dataset/xor/.empty
 !dataset/frozen_noise/.empty
 !dataset/count_pixels/.empty
+!dataset/fruits/extract_fruits.zip
 .DS_Store
 output/*
 !output/.empty
