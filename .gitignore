@@ -1,5 +1,13 @@
 __pycache__/
-dataset/
+dataset/xor/*
+dataset/frozen_noise/*
+dataset/count_pixels/*
+dataset/brain_tumor
+dataset/emotions
+dataset/fruits
+!dataset/xor/.empty
+!dataset/frozen_noise/.empty
+!dataset/count_pixels/.empty
 .DS_Store
 output/*
 !output/.empty
